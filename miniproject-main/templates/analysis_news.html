@@ -1,6 +1,7 @@
 <!-- analysis_news.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Analysis Results</title>
@@ -9,9 +10,10 @@
     <script src="{{ url_for('static', filename='darkmode.js') }}" defer></script>
 
     <style>
-        body{
-            background-color:#74AFAD;
+        body {
+            background-color: #74AFAD;
         }
+
         .navbar {
             background-color: #d89034;
             padding: 14px;
@@ -21,14 +23,15 @@
             position: fixed;
             top: 0;
             left: 0;
-            z-index: 1000; /* Ensure the navbar stays on top of other content */
-            font-family: Bookman, URW Bookman L, serif; /* Change font family */
-            font-size:18px
-            
-        }    
+            z-index: 1000;
+            font-family: Bookman, URW Bookman L, serif;
+            font-size: 18px
+        }
+
         .content {
-            padding-top: 70px; /* Adjust the value based on the height of your navbar */
-        }    
+            padding-top: 70px;
+        }
+
         .matrix-container {
             background-color: #f8f9fa;
             padding: 10px;
@@ -36,6 +39,7 @@
             margin-bottom: 20px;
             border: 1px solid #ccc;
         }
+
         .matrix-item {
             display: inline-block;
             background-color: #fff;
@@ -43,39 +47,48 @@
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             font-size: 0.9em;
         }
+
         .container {
             margin-top: 20px;
         }
+
         img {
             max-width: 100%;
             height: auto;
         }
-    
-        /* Custom styles for headings */
-        .container h1,.context h2 {
-            color: #ffffff; /* White text color */
-            font-family: 'Arial', sans-serif; /* Use a common sans-serif font */
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.2); /* Subtle text shadow for depth */
-            padding: 10px 15px; /* Padding around text */
-            border-radius: 5px; /* Rounded corners for the boxes */
-            margin-bottom: 20px; /* Space below the headings */
+
+        canvas {
+            display: flex;
+            max-height: 550px;
+            max-width: 550px;
         }
-    
+
+        .container h1,
+        .context h2 {
+            color: #ffffff;
+            font-family: 'Arial', sans-serif;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
         .container h1 {
-            background-color: #007bff; /* Bootstrap primary blue for main heading */
-            font-size: 2.5em; /* Larger font size for main heading */
+            background-color: #007bff;
+            font-size: 2.5em;
         }
-    
+
         .container h2 {
-            background-color: #6c757d; /* Bootstrap secondary gray for subheadings */
-            font-size: 2.5em; /* Slightly smaller than h1 */
-            margin-top: 10px; /* Space above subheadings */
+            background-color: #6c757d;
+            font-size: 2.5em;
+            margin-top: 10px;
             padding: 10px;
             border-radius: 5px;
         }
+
         .sentiment-box {
             border: 2px solid #333;
             border-radius: 8px;
@@ -83,19 +96,23 @@
             margin-top: 20px;
             background-color: #f0f0f0;
         }
+
         .navbar h1 {
             color: #333 !important;
             font-family: 'Bookman', serif !important;
             font-size: 23px !important;
             font-weight: bold !important;
         }
-        
     </style>
-    
+
     <!-- Include jsPDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
+    <!-- Include Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Include WordCloud.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.1.2/wordcloud2.min.js"></script>
 </head>
+
 <body>
     {% include 'navbar.html' %}
     <div class="content">
@@ -121,6 +138,21 @@
                     {% endfor %}
                 </ul>
             </div>
+            <h3 class="mt-4">Top 5 Words Visualization</h3>
+
+            <!-- Chart Type Selector -->
+            <div class="mb-3">
+                <label for="chartTypeSelect" class="form-label text-white">Select Chart Type:</label>
+                <select id="chartTypeSelect" class="form-select w-25">
+                    <option value="pie" selected>Pie Chart</option>
+                    <option value="bar">Bar Chart</option>
+                    <option value="wordcloud">Word Cloud</option>
+                </select>
+            </div>
+
+            <!-- Chart Container -->
+            <canvas id="bowPieChart" width="200" height="100"></canvas>
+            <div id="wordCloudContainer" style="width: 100%; height: 300px; display: none;"></div>
             <button onclick="speakText('topBowWords')" class="btn btn-secondary">🔊 Listen</button>
             <button onclick="stopSpeech()" class="btn btn-danger">⏹️ Stop</button>
 
@@ -148,49 +180,124 @@
             <div class="sentiment-box" id="sentimentResult">
                 <p>Sentiment Score: {{ sentiment_score }}</p>
                 <p>
-                    Sentiment Label: 
+                    Sentiment Label:
                     {% if sentiment_label == 'Positive' %}
-                        <span style="color: green;">{{ sentiment_label }}</span>
+                    <span style="color: green;">{{ sentiment_label }}</span>
                     {% elif sentiment_label == 'Negative' %}
-                        <span style="color: red;">{{ sentiment_label }}</span>
+                    <span style="color: red;">{{ sentiment_label }}</span>
                     {% elif sentiment_label == 'Neutral' %}
-                        <span style="color: blue;">{{ sentiment_label }}</span>
+                    <span style="color: blue;">{{ sentiment_label }}</span>
                     {% else %}
-                        {{ sentiment_label }}
+                    {{ sentiment_label }}
                     {% endif %}
                 </p>
             </div>
             <button onclick="speakText('sentimentResult')" class="btn btn-secondary">🔊 Listen</button>
             <button onclick="stopSpeech()" class="btn btn-danger">⏹️ Stop</button>
 
+            <h2>Topic:</h2>
+            <div class="matrix-container" id="newsTopic">{{ topic }}</div>
+            <h2>Summary:</h2>
+            <div class="matrix-container" id="newsSummary">{{ summary }}</div>
+            <button onclick="speakText('newsSummary')" class="btn btn-secondary">🔊 Listen</button>
+            <button onclick="stopSpeech()" class="btn btn-danger">⏹️ Stop</button>
+
             <!-- PDF Export Button -->
             <button id="exportPDF" class="btn btn-success mt-3">📄 Download Report</button>
+
+            <h2>User Feedback</h2>
+            <form method="POST" action="/submit_feedback" class="mb-4">
+                <div class="mb-3">
+                    <label for="rating" class="form-label">Rating:</label>
+                    <select id="rating" name="rating" class="form-select" required>
+                        <option value="">Select rating</option>
+                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                        <option value="4">⭐⭐⭐⭐ Good</option>
+                        <option value="3">⭐⭐⭐ Average</option>
+                        <option value="2">⭐⭐ Poor</option>
+                        <option value="1">⭐ Very Poor</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="comments" class="form-label">Comments:</label>
+                    <textarea id="comments" name="comments" class="form-control" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Feedback</button>
+            </form>
 
             <a href="/" class="btn btn-primary mt-3">Back to Home</a>
         </div>
     </div>
 
     <script>
-        let speechSynthesisInstance = window.speechSynthesis;
-        let currentSpeech = null;
+        const pieLabels = {{ bow_labels | tojson }};
+        const pieData = {{ bow_counts | tojson }};
+        const chartCanvas = document.getElementById('bowPieChart');
+        const wordCloudContainer = document.getElementById('wordCloudContainer');
+        let currentChart;
 
-        function speakText(elementId) {
-            let text = document.getElementById(elementId).innerText;
-            currentSpeech = new SpeechSynthesisUtterance(text);
-            currentSpeech.lang = 'en-US';
-            speechSynthesisInstance.speak(currentSpeech);
-        }
-
-        function stopSpeech() {
-            if (speechSynthesisInstance.speaking) {
-                speechSynthesisInstance.cancel();
+        function renderChart(type) {
+            if (currentChart) {
+                currentChart.destroy();
             }
+
+            chartCanvas.style.display = 'flex';
+            wordCloudContainer.style.display = 'none';
+
+            if (type === 'wordcloud') {
+                chartCanvas.style.display = 'none';
+                wordCloudContainer.style.display = 'block';
+
+                const wordList = pieLabels.map((label, index) => [label, pieData[index]]);
+                WordCloud(wordCloudContainer, {
+                    list: wordList,
+                    gridSize: 10,
+                    weightFactor: 10,
+                    fontFamily: 'Times, serif',
+                    color: 'random-dark',
+                    rotateRatio: 0.5,
+                    backgroundColor: '#f0f0f0'
+                });
+                return;
+            }
+
+            const chartType = (type === 'bar') ? 'bar' : 'pie';
+            currentChart = new Chart(chartCanvas.getContext('2d'), {
+                type: chartType,
+                data: {
+                    labels: pieLabels,
+                    datasets: [{
+                        label: 'Top Words',
+                        data: pieData,
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
+                        ],
+                        borderColor: '#ffffff',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Top 5 BoW Words - ${chartType === 'pie' ? 'Pie Chart' : 'Bar Chart'}`
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
         }
+
+        document.getElementById('chartTypeSelect').addEventListener('change', function () {
+            renderChart(this.value);
+        });
+
+        // Initial chart
+        renderChart('pie');
     </script>
-
-    <!-- Include JS File -->
-    <script src="{{ url_for('static', filename='js/export_pdf.js') }}"></script>
 </body>
-
 
 </html>
